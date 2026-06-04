@@ -1,0 +1,105 @@
+GEOPIC INTERNSHIP — PROJECT NOTES
+==================================
+Last updated: 2026-06-04
+
+DATASET
+-------
+File: Dutch Government_F3_entire_8bit seismic.segy
+Size: 1.2 GB (8-bit acquisition, auto-converted to float32 by segyio)
+Location: D:\STUDY\geopic-seismic-ml\data\
+
+SEG-Y GEOMETRY (from 01_load_segy.py output)
+---------------------------------------------
+Inlines        : 100 to 750  (count: 651)
+Crosslines     : 300 to 1250 (count: 951)
+Samples        : 4.0 ms to 1848.0 ms (count: 462)
+Sample interval: 4.0 ms (4000 us)
+Trace dtype    : float32
+Value range    : -19301.0 to 8999.0
+Total traces   : 651 x 951 = 618,801
+
+INLINE/XLINE BYTE POSITIONS
+-----------------------------
+Inline byte  : 189
+Xline byte   : 193
+
+ENVIRONMENT
+-----------
+Python env   : geopic_env (venv)
+Activate cmd : .\geopic_env\Scripts\activate
+Run scripts  : python pipeline/01_load_segy.py (from project root)
+Key packages : segyio 1.9.14, scikit-learn 1.9.0, numpy 1.26.4, matplotlib
+
+PROJECT STRUCTURE
+-----------------
+geopic-seismic-ml/
+  backend/routers/     FastAPI endpoints
+  data/                SEG-Y + well logs (git ignored)
+  geopic-dashboard/    React 18 + Vite frontend
+  notebooks/           Jupyter ML prototyping
+  outputs/             Clustering results, facies maps
+  pipeline/            Core Python ML scripts
+  qc/                  Well log QC scripts
+  report/              Documentation
+
+PIPELINE PROGRESS
+-----------------
+[DONE] Step 0.1-0.3 : Project setup
+[DONE] Step 0.4     : Dataset downloaded and verified
+[DONE] Step 1.1     : SEG-Y header inspection (01_load_segy.py) — committed
+[DONE] Step 1.2     : Inline section extracted — outputs/inline_section.npy, shape (951, 462)
+[DONE] Step 1.3     : Seismic section plotted — outputs/seismic_section.png
+[DONE] Step 2.2     : All 8 attribute functions implemented (02_extract_attributes.py) — committed
+[DONE] Step 2.3     : Feature matrix built and saved — outputs/feature_matrix.npy (439362, 8)
+[ ]    Step 3.1     : Next up — find optimal cluster count (k=3 to 8)
+
+WELL LOGS (Phase 3 — not yet downloaded)
+-----------------------------------------
+Source: terranubis.com/datainfo/F3-Demo-2023
+Wells : F02-1, F03-2, F03-4, F06-1
+Logs  : GR, Density, Sonic, Porosity, Litholog
+
+==================================
+STEP OUTPUTS — VERIFIED
+==================================
+
+STEP 2.2 OUTPUT — 02_extract_attributes.py (attribute sanity check)
+--------------------------------------------------------------------
+Command : python pipeline/02_extract_attributes.py
+Input shape: (951, 462)
+
+envelope             shape=(951, 462)  min=0.061     max=24107.311
+inst_phase           shape=(951, 462)  min=-3.142    max=3.142
+cosine_phase         shape=(951, 462)  min=-1.000    max=1.000
+inst_frequency       shape=(951, 462)  min=-3.142    max=3.142
+rms_amplitude        shape=(951, 462)  min=0.000     max=15558.973
+refl_strength        shape=(951, 462)  min=0.061     max=24107.311
+sweetness            shape=(951, 462)  min=0.052     max=7624341504.000
+spectral_decomp      shape=(951, 462)  min=3977.247  max=181150.641
+
+All 8 attributes computed successfully.
+
+Notes:
+- All shapes correct: (951, 462) = 951 crosslines x 462 time samples
+- sweetness max (~7.6B) is expected — StandardScaler in Step 2.3 normalises it
+- spectral_decomp range expected (one 30 Hz bin broadcast across all samples)
+- inst_phase range [-3.142, 3.142] = [-pi, pi] — correct
+- cosine_phase range [-1.0, 1.0] — correct
+
+STEP 2.3 OUTPUT — 02_extract_attributes.py (feature matrix build)
+-----------------------------------------------------------------
+Command : python pipeline/02_extract_attributes.py
+Input shape: (951, 462)
+
+Feature matrix shape : (439362, 8)
+Value range          : -5.063 to 173.445
+Feature names        : ['envelope', 'inst_phase', 'cosine_phase', 'inst_freq',
+                        'rms_amplitude', 'refl_strength', 'sweetness', 'spectral_30hz']
+
+Saved feature_matrix.npy and feature_names.npy to outputs/
+
+Notes:
+- Shape (439362, 8) = 951 x 462 samples, 8 features — correct
+- Range slightly beyond [-3, 3] due to sweetness outliers — acceptable,
+  bulk of values are in range and KMeans/GMM handle this fine
+- Both .npy files saved to outputs/ and committed to GitHub
