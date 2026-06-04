@@ -12,6 +12,7 @@ Run from the pipeline/ directory:
 """
 
 import segyio
+import numpy as np
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -20,41 +21,51 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 SEGY_PATH  = SCRIPT_DIR / ".." / "data" / "Dutch Government_F3_entire_8bit seismic.segy"
 
-# Standard F3 Block trace-header byte positions
-INLINE_BYTE  = 189   # Inline number byte offset
-XLINE_BYTE   = 193   # Crossline number byte offset
+INLINE_BYTE  = 189
+XLINE_BYTE   = 193
 
 
 def inspect_headers(path: str) -> None:
     """Open the SEG-Y file and print survey geometry information."""
 
     with segyio.open(path, mode="r", iline=INLINE_BYTE, xline=XLINE_BYTE) as f:
-        # Allow segyio to read files that may not be perfectly spec-compliant
         f.mmap()
 
-        # --- Inline information ---
+        # --- 1.1: Header inspection ---
         inlines = f.ilines
         print(f"Inlines  : {inlines[0]} to {inlines[-1]}  (count: {len(inlines)})")
 
-        # --- Crossline information ---
         xlines = f.xlines
         print(f"Crosslines: {xlines[0]} to {xlines[-1]}  (count: {len(xlines)})")
 
-        # --- Sample (time / depth) information ---
-        samples = f.samples           # 1-D array of sample times in ms
-        n_samples = len(samples)
-        print(f"Samples  : {samples[0]:.1f} ms to {samples[-1]:.1f} ms  (count: {n_samples})")
+        samples = f.samples
+        print(f"Samples  : {samples[0]:.1f} ms to {samples[-1]:.1f} ms  (count: {len(samples)})")
 
-        # --- Sample interval ---
-        # segyio stores the binary-header sample interval in microseconds;
-        # divide by 1000 to get milliseconds.
-        dt_us = segyio.tools.dt(f)    # sample interval in microseconds
-        dt_ms = dt_us / 1000.0
-        print(f"Sample interval: {dt_ms} ms  ({dt_us} us)")
+        dt_us = segyio.tools.dt(f)
+        print(f"Sample interval: {dt_us / 1000.0} ms  ({dt_us} us)")
 
         t0 = f.trace[0]
         print(f"First trace dtype: {t0.dtype}")
         print(f"Value range      : {t0.min():.4f} to {t0.max():.4f}")
+
+        # --- 1.2: Extract middle inline section ---
+        mid_inline = f.ilines[len(f.ilines) // 2]
+        print(f"Extracting inline : {mid_inline}")
+
+        section = f.iline[mid_inline].astype(np.float32)
+
+        print(f"Section shape     : {section.shape}")
+        print(f"Section min/max   : {section.min():.2f} / {section.max():.2f}")
+        print(f"Section mean      : {section.mean():.2f}")
+
+        # Save to outputs/
+        OUTPUTS = SCRIPT_DIR / ".." / "outputs"
+        OUTPUTS.mkdir(exist_ok=True)
+
+        np.save(OUTPUTS / "inline_section.npy", section)
+        np.save(OUTPUTS / "inline_index.npy", np.array(mid_inline))
+        print("Saved: outputs/inline_section.npy")
+        print("Saved: outputs/inline_index.npy")
 
 
 # ---------------------------------------------------------------------------
@@ -62,8 +73,8 @@ def inspect_headers(path: str) -> None:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     print("=" * 60)
-    print("  F3 Block -- SEG-Y Header Inspection")
+    print("  F3 Block -- SEG-Y Header Inspection & Inline Extraction")
     print("=" * 60)
     inspect_headers(SEGY_PATH)
     print("=" * 60)
-    print("Header inspection complete.")
+    print("Done.")
