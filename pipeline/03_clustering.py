@@ -147,12 +147,12 @@ vmin, vmax = np.percentile(section, [2, 98])
 
 # ── colour palette for 6 clusters ───────────────────────────────────
 FACIES_COLORS = ListedColormap([
-    "#e63946",   # red
-    "#457b9d",   # steel blue
-    "#2a9d8f",   # teal
-    "#e9c46a",   # sandy yellow
-    "#f4a261",   # orange
-    "#264653",   # dark charcoal
+    '#e6194b',  # red
+    '#3cb44b',  # green
+    '#4363d8',  # blue
+    '#f58231',  # orange
+    '#911eb4',  # purple
+    '#42d4f4',  # cyan
 ])
 
 # ── plot ─────────────────────────────────────────────────────────────
