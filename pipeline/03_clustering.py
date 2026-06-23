@@ -5,6 +5,8 @@ Step 3.1 – Evaluate KMeans clustering (k = 3..8) on the seismic feature matrix
          Outputs an elbow + silhouette plot to ../outputs/cluster_selection.png.
 Step 3.2 – Run KMeans and GMM with the chosen K on the full feature matrix.
          Saves label arrays to ../outputs/kmeans_labels.npy and gmm_labels.npy.
+Step 3.4 – t-SNE visualisation of cluster separation on a 10,000-point subsample.
+         Saves ../outputs/tsne_2d.npy, tsne_labels.npy, and tsne_plot.png.
 Step 3.3 – Generate facies map: reshape labels to 2D and overlay on seismic section.
          Saves ../outputs/label_map_kmeans.npy and ../outputs/facies_map.png.
 """
@@ -15,6 +17,7 @@ from matplotlib.colors import ListedColormap
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.mixture import GaussianMixture
+from sklearn.manifold import TSNE
 from pathlib import Path
 
 # ── paths ────────────────────────────────────────────────────────────
@@ -24,6 +27,9 @@ OUTPUT_PATH  = OUT_DIR / "cluster_selection.png"
 KMEANS_PATH  = OUT_DIR / "kmeans_labels.npy"
 GMM_PATH     = OUT_DIR / "gmm_labels.npy"
 SECTION_PATH = OUT_DIR / "inline_section.npy"
+TSNE_2D_PATH = OUT_DIR / "tsne_2d.npy"
+TSNE_LBL_PATH= OUT_DIR / "tsne_labels.npy"
+TSNE_PLT_PATH= OUT_DIR / "tsne_plot.png"
 LABELMAP_PATH= OUT_DIR / "label_map_kmeans.npy"
 FACIES_PATH  = OUT_DIR / "facies_map.png"
 
@@ -178,5 +184,48 @@ cbar.set_label("Cluster")
 fig.tight_layout()
 fig.savefig(FACIES_PATH, dpi=150, bbox_inches="tight")
 print(f"  Facies map saved to  : {FACIES_PATH}")
+
+# ══════════════════════════════════════════════════════════════════════
+# Step 3.4 – t-SNE visualisation
+# ══════════════════════════════════════════════════════════════════════
+TSNE_N = 10_000
+
+print(f"\n{'='*50}")
+print("Step 3.4: t-SNE visualisation")
+print(f"{'='*50}")
+
+# ── subsample ───────────────────────────────────────────────────────
+rng_tsne = np.random.default_rng(SEED)
+tsne_idx = rng_tsne.choice(features.shape[0], size=min(TSNE_N, features.shape[0]), replace=False)
+X_tsne   = features[tsne_idx]
+y_tsne   = km_labels[tsne_idx]
+print(f"  Subsample size : {X_tsne.shape[0]:,} points")
+
+# ── run t-SNE ───────────────────────────────────────────────────────
+print("  Running t-SNE (perplexity=30, max_iter=1000) — this may take a few minutes ...")
+tsne = TSNE(n_components=2, random_state=SEED, perplexity=30, max_iter=1000)
+embedding = tsne.fit_transform(X_tsne)
+
+np.save(TSNE_2D_PATH,  embedding)
+np.save(TSNE_LBL_PATH, y_tsne)
+print(f"  2D embedding saved to : {TSNE_2D_PATH}")
+print(f"  Labels saved to       : {TSNE_LBL_PATH}")
+
+# ── scatter plot ───────────────────────────────────────────────────
+fig_t, ax_t = plt.subplots(figsize=(9, 7))
+sc = ax_t.scatter(
+    embedding[:, 0], embedding[:, 1],
+    c=y_tsne, cmap=FACIES_COLORS,
+    vmin=0, vmax=K - 1,
+    alpha=0.5, s=5,
+)
+cbar_t = fig_t.colorbar(sc, ax=ax_t, ticks=range(K))
+cbar_t.set_label("Cluster")
+ax_t.set_title("t-SNE Cluster Separation")
+ax_t.set_xlabel("t-SNE 1")
+ax_t.set_ylabel("t-SNE 2")
+fig_t.tight_layout()
+fig_t.savefig(TSNE_PLT_PATH, dpi=150, bbox_inches="tight")
+print(f"  t-SNE plot saved to   : {TSNE_PLT_PATH}")
 
 print("\nDone.")
