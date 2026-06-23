@@ -4,3 +4,5 @@ geopic_env/
 __pycache__/
 *.pyc
 .env
+*.docx
+project_notes*.txt

@@ -203,27 +203,3 @@ if __name__ == "__main__":
     np.save(OUTPUTS / "feature_names.npy", np.array(feat_names))
 
     print("\nSaved feature_matrix.npy and feature_names.npy to outputs/")
-
-# ---------------------------------------------------------------------------
-# Main — quick sanity check
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    section = np.load(OUTPUTS / "inline_section.npy")
-    print(f"Input shape: {section.shape}")
-
-    attrs = {
-        "envelope"         : attr_envelope,
-        "inst_phase"       : attr_instantaneous_phase,
-        "cosine_phase"     : attr_cosine_phase,
-        "inst_frequency"   : attr_instantaneous_frequency,
-        "rms_amplitude"    : attr_rms_amplitude,
-        "refl_strength"    : attr_reflection_strength,
-        "sweetness"        : attr_sweetness,
-        "spectral_decomp"  : attr_spectral_decomp,
-    }
-
-    for name, fn in attrs.items():
-        result = fn(section)
-        print(f"{name:20s} shape={result.shape}  min={result.min():.3f}  max={result.max():.3f}")
-
-    print("\nAll 8 attributes computed successfully.")
