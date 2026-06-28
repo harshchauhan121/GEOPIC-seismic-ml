@@ -224,3 +224,60 @@ def attribute_stats():
         "features": feature_names,
         "clusters": cluster_stats,
     })
+
+
+# ── t-SNE projection ──────────────────────────────────────────────────
+@app.get("/api/tsne", tags=["Clustering"])
+def tsne():
+    """
+    Return the 2-D t-SNE projection of the seismic feature matrix together
+    with the K-Means cluster label assigned to each sample.
+
+    Response schema
+    ───────────────
+    {
+        "x":      [float, ...],   // t-SNE dimension-1 coordinate per sample
+        "y":      [float, ...],   // t-SNE dimension-2 coordinate per sample
+        "labels": [int,   ...]    // cluster ID per sample (same length as x/y)
+    }
+    """
+    tsne_path   = OUTPUTS / "tsne_2d.npy"
+    labels_path = OUTPUTS / "tsne_labels.npy"
+
+    # ── guard: verify both files exist ───────────────────────────────
+    for path in (tsne_path, labels_path):
+        if not path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"{path.name} not found in outputs directory.",
+            )
+
+    # ── load ──────────────────────────────────────────────────────────
+    tsne_coords = np.load(tsne_path)     # shape (N, 2)
+    tsne_labels = np.load(labels_path)   # shape (N,) — int cluster IDs
+
+    # ── basic shape validation ────────────────────────────────────────
+    if tsne_coords.ndim != 2 or tsne_coords.shape[1] != 2:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "tsne_2d.npy must be 2-D with exactly 2 columns (N × 2); "
+                f"got shape {list(tsne_coords.shape)}."
+            ),
+        )
+    if tsne_coords.shape[0] != tsne_labels.shape[0]:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Row count mismatch: tsne_2d has "
+                f"{tsne_coords.shape[0]} rows but tsne_labels has "
+                f"{tsne_labels.shape[0]} entries."
+            ),
+        )
+
+    # ── return ────────────────────────────────────────────────────────
+    return JSONResponse({
+        "x":      tsne_coords[:, 0].tolist(),          # list[float]
+        "y":      tsne_coords[:, 1].tolist(),          # list[float]
+        "labels": tsne_labels.astype(int).tolist(),    # list[int]
+    })
