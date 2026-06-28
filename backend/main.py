@@ -150,3 +150,77 @@ def cluster_labels(
         "downsample": downsample,
         "shape":      list(label_ds_T.shape),   # [n_traces, n_samples] after transpose
     })
+
+
+# ── attribute statistics ──────────────────────────────────────────────
+@app.get("/api/attribute-stats", tags=["Clustering"])
+def attribute_stats():
+    """
+    Return per-cluster descriptive statistics for all seismic features.
+
+    Loads the full feature matrix, K-Means cluster labels, and feature
+    names from OUTPUTS, then computes — for each unique cluster ID — the
+    mean, standard deviation, and sample count of every feature column.
+
+    Response schema
+    ───────────────
+    {
+        "features": ["feat_a", "feat_b", ...],          // 8 feature names
+        "clusters": {
+            "0": {"mean": [...], "std": [...], "count": 1234},
+            "1": {"mean": [...], "std": [...], "count":  987},
+            ...
+        }
+    }
+    """
+    feat_matrix_path = OUTPUTS / "feature_matrix.npy"
+    labels_path      = OUTPUTS / "kmeans_labels.npy"
+    feat_names_path  = OUTPUTS / "feature_names.npy"
+
+    # ── guard: verify all required files exist ────────────────────────
+    for path in (feat_matrix_path, labels_path, feat_names_path):
+        if not path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"{path.name} not found in outputs directory.",
+            )
+
+    # ── load ──────────────────────────────────────────────────────────
+    feature_matrix = np.load(feat_matrix_path)          # shape (N, n_features)
+    kmeans_labels  = np.load(labels_path)               # shape (N,)  — int cluster IDs
+    feature_names  = np.load(feat_names_path,
+                             allow_pickle=True).tolist() # list of str, length n_features
+
+    # ── basic shape validation ────────────────────────────────────────
+    if feature_matrix.ndim != 2:
+        raise HTTPException(
+            status_code=500,
+            detail="feature_matrix.npy must be 2-D (samples × features).",
+        )
+    if feature_matrix.shape[0] != kmeans_labels.shape[0]:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Row count mismatch: feature_matrix has "
+                f"{feature_matrix.shape[0]} rows but kmeans_labels has "
+                f"{kmeans_labels.shape[0]} entries."
+            ),
+        )
+
+    # ── compute per-cluster statistics ───────────────────────────────
+    cluster_stats: dict[str, dict] = {}
+
+    for cluster_id in sorted(np.unique(kmeans_labels)):
+        mask   = kmeans_labels == cluster_id          # boolean index for this cluster
+        subset = feature_matrix[mask]                 # shape (count, n_features)
+
+        cluster_stats[str(int(cluster_id))] = {
+            "mean":  subset.mean(axis=0).tolist(),    # list[float], length n_features
+            "std":   subset.std(axis=0).tolist(),     # list[float], length n_features
+            "count": int(mask.sum()),                 # scalar int
+        }
+
+    return JSONResponse({
+        "features": feature_names,
+        "clusters": cluster_stats,
+    })
