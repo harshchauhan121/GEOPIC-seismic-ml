@@ -18,6 +18,7 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
   const [seismicData, setSeismicData] = useState(null);
   const [clusterData, setClusterData] = useState(null);
   const [baseImage, setBaseImage] = useState(null);
+  const [overlayAlpha, setOverlayAlpha] = useState(0.40);
 
   // ── data fetch ──────────────────────────────────────────────────────
   const loadSeismicData = useCallback(async () => {
@@ -96,16 +97,16 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
         const [cR, cG, cB] = CLUSTER_COLORS[clusterID];
         const px = (y * canvas.width + x) * 4;  // RGBA stride
 
-        // 15 % cluster colour blended over existing RGB — no brightness skip
-        pixels[px] = Math.round(pixels[px] * 0.85 + cR * 0.15);
-        pixels[px + 1] = Math.round(pixels[px + 1] * 0.85 + cG * 0.15);
-        pixels[px + 2] = Math.round(pixels[px + 2] * 0.85 + cB * 0.15);
+        const base = 1 - overlayAlpha;
+        pixels[px]     = Math.round(pixels[px]     * base + cR * overlayAlpha);
+        pixels[px + 1] = Math.round(pixels[px + 1] * base + cG * overlayAlpha);
+        pixels[px + 2] = Math.round(pixels[px + 2] * base + cB * overlayAlpha);
         // pixels[px + 3] (alpha) is left untouched — always 255
       }
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [baseImage, showOverlay, clusterData, seismicData, loading]);
+  }, [baseImage, showOverlay, clusterData, seismicData, loading, overlayAlpha]);
 
   // ── shared media style ──────────────────────────────────────────────
   const mediaStyle = {
@@ -147,6 +148,26 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
                 alt="Seismic Section"
                 style={mediaStyle}
               />
+            )}
+
+            {showOverlay && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '8px 12px', fontSize: '13px',
+                color: 'var(--text-secondary, #aaa)'
+              }}>
+                <span>Opacity</span>
+                <input
+                  type="range"
+                  min="0.15" max="0.65" step="0.05"
+                  value={overlayAlpha}
+                  onChange={e => setOverlayAlpha(parseFloat(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ minWidth: '34px', textAlign: 'right' }}>
+                  {Math.round(overlayAlpha * 100)}%
+                </span>
+              </div>
             )}
           </>
         )}
