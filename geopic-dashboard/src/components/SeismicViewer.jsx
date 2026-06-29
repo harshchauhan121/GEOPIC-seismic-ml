@@ -64,16 +64,13 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
     canvas.width = seismicData.width;
     canvas.height = seismicData.height;
 
-    // 1. Draw base image at full canvas resolution
-    ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
-
-    // 2. Blend cluster colours into every pixel
+    // Paint cluster colours onto empty transparent canvas
     const labels = clusterData.labels;           // [time_rows][crossline_cols]
     const labelRows = labels.length;                // 462
     const labelCols = labels[0].length;             // 951
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;               // Uint8ClampedArray, RGBA
+    const imageData = ctx.createImageData(canvas.width, canvas.height);
+    const pixels = imageData.data;               // Uint8ClampedArray, RGBA (all 0)
 
     for (let y = 0; y < canvas.height; y++) {
       // Map canvas row → label row
@@ -97,16 +94,15 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
         const [cR, cG, cB] = CLUSTER_COLORS[clusterID];
         const px = (y * canvas.width + x) * 4;  // RGBA stride
 
-        const base = 1 - overlayAlpha;
-        pixels[px]     = Math.round(pixels[px]     * base + cR * overlayAlpha);
-        pixels[px + 1] = Math.round(pixels[px + 1] * base + cG * overlayAlpha);
-        pixels[px + 2] = Math.round(pixels[px + 2] * base + cB * overlayAlpha);
-        // pixels[px + 3] (alpha) is left untouched — always 255
+        pixels[px]     = cR;
+        pixels[px + 1] = cG;
+        pixels[px + 2] = cB;
+        pixels[px + 3] = 255; // solid cluster colour
       }
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [baseImage, showOverlay, clusterData, seismicData, loading, overlayAlpha]);
+  }, [baseImage, showOverlay, clusterData, seismicData, loading]);
 
   // ── shared media style ──────────────────────────────────────────────
   const mediaStyle = {
@@ -139,14 +135,26 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
               Inline {seismicData.inline_index}
             </div>
 
-            {/* Canvas is used when overlay is ON, plain <img> when OFF */}
-            {showOverlay ? (
-              <canvas ref={canvasRef} style={mediaStyle} />
-            ) : (
-              <img
-                src={`data:image/png;base64,${seismicData.image_b64}`}
-                alt="Seismic Section"
-                style={mediaStyle}
+            {/* Base image is always rendered */}
+            <img
+              src={`data:image/png;base64,${seismicData.image_b64}`}
+              alt="Seismic Section"
+              style={mediaStyle}
+            />
+
+            {/* Canvas overlay is absolutely positioned on top, handled by CSS opacity */}
+            {showOverlay && (
+              <canvas 
+                ref={canvasRef} 
+                style={{ 
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  position: 'absolute', 
+                  top: 0, 
+                  left: 0, 
+                  opacity: overlayAlpha 
+                }} 
               />
             )}
 
