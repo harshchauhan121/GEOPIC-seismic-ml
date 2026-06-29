@@ -20,6 +20,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
 # ── app ───────────────────────────────────────────────────────────────
 app = FastAPI(
     title="GEOPIC Seismic Dashboard API",
@@ -76,14 +81,21 @@ def seismic_section(
     # 2. Downsample (every Nth row and column)
     section_ds = section[::downsample, ::downsample]
 
-    # 3. Percentile clip then normalise to 0-255
+    # 3. Percentile clip then normalise to 0.0 - 1.0 float
     vmin, vmax = np.percentile(section_ds, [2, 98])
     clipped    = np.clip(section_ds, vmin, vmax)
-    normalised = ((clipped - vmin) / (vmax - vmin) * 255).astype(np.uint8)
+    normed     = (clipped - vmin) / (vmax - vmin)
 
-    # 4. Convert to PIL Image — shape is (n_samples, n_traces) which is
-    #    already (rows=time, cols=trace), so time goes downward naturally.
-    img = Image.fromarray(normalised, mode="L")
+    # 4. Transpose to landscape (time, crosslines) and apply colormap
+    # Apply matplotlib Greys colormap for identical quality to seismic_section.png
+    normed_T = normed.T
+    cmap = cm.get_cmap('Greys')
+    colored = cmap(normed_T)  # returns RGBA float array 0-1
+    colored_uint8 = (colored[:, :, :3] * 255).astype(np.uint8)  # drop alpha, keep RGB
+
+    # 5. Convert to PIL Image and Upscale
+    img = Image.fromarray(colored_uint8, mode='RGB')
+    img = img.resize((2100, 900), Image.LANCZOS)
 
     # 5. Encode as PNG into a BytesIO buffer
     buf = io.BytesIO()
