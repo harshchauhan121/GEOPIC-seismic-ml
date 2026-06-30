@@ -94,7 +94,7 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
         const [cR, cG, cB] = CLUSTER_COLORS[clusterID];
         const px = (y * canvas.width + x) * 4;  // RGBA stride
 
-        pixels[px]     = cR;
+        pixels[px] = cR;
         pixels[px + 1] = cG;
         pixels[px + 2] = cB;
         pixels[px + 3] = 255; // solid cluster colour
@@ -144,17 +144,17 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
 
             {/* Canvas overlay is absolutely positioned on top, handled by CSS opacity */}
             {showOverlay && (
-              <canvas 
-                ref={canvasRef} 
-                style={{ 
+              <canvas
+                ref={canvasRef}
+                style={{
                   width: '100%',
                   height: 'auto',
                   display: 'block',
-                  position: 'absolute', 
-                  top: 0, 
-                  left: 0, 
-                  opacity: overlayAlpha 
-                }} 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  opacity: overlayAlpha
+                }}
               />
             )}
 
@@ -167,7 +167,7 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
                 <span>Opacity</span>
                 <input
                   type="range"
-                  min="0.15" max="0.65" step="0.05"
+                  min="0.15" max="0.65" step="any"
                   value={overlayAlpha}
                   onChange={e => setOverlayAlpha(parseFloat(e.target.value))}
                   style={{ flex: 1 }}

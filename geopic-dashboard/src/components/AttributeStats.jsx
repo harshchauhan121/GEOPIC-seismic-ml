@@ -56,11 +56,10 @@ export default function AttributeStats({ selectedCluster, onSelectCluster }) {
   const clusterData = stats.clusters[selectedCluster];
   const clusterKeys = Object.keys(stats.clusters).sort((a, b) => parseInt(a) - parseInt(b));
 
-  const maxValues = {};
-  features.forEach((feature, idx) => {
-    const values = clusterKeys.map((k) => stats.clusters[k].mean[idx] || 0);
-    maxValues[idx] = Math.max(...values);
-  });
+  const selectedMeans = features.map((_, idx) => clusterData?.mean?.[idx] ?? 0);
+  const clusterMin = Math.min(...selectedMeans);
+  const clusterMax = Math.max(...selectedMeans);
+  const clusterRange = clusterMax - clusterMin;
 
   return (
     <div className="attribute-stats">
@@ -85,8 +84,9 @@ export default function AttributeStats({ selectedCluster, onSelectCluster }) {
         {features.map((feature, idx) => {
           const mean = clusterData?.mean?.[idx] ?? 0;
           const std = clusterData?.std?.[idx] ?? 0;
-          const maxVal = maxValues[idx] || 1;
-          const widthPercent = maxVal > 0 ? (mean / maxVal) * 100 : 0;
+          const widthPercent = clusterRange > 0 
+            ? ((mean - clusterMin) / clusterRange) * 100 
+            : 0;
 
           return (
             <div key={idx} className="bar-row">

@@ -5,6 +5,7 @@ import SeismicViewer from './components/SeismicViewer';
 import ClusterControls from './components/ClusterControls';
 import TSNEPlot from './components/TSNEPlot';
 import AttributeStats from './components/AttributeStats';
+import AttributeComparison from './components/AttributeComparison';
 import ClusterDistribution from './components/ClusterDistribution';
 import './App.css';
 
@@ -84,6 +85,14 @@ export default function App() {
               selectedCluster={selectedCluster}
               onSelectCluster={(c) => setSelectedCluster(c)}
             />
+          </div>
+
+          {/* SECTION 4 — Attribute Comparison Across Clusters */}
+          <div className="panel panel-stats">
+            <div className="panel-header">
+              <h2>Attribute Comparison Across Clusters</h2>
+            </div>
+            <AttributeComparison />
           </div>
         </div>
       </main>
