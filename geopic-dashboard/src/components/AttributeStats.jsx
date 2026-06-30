@@ -61,6 +61,13 @@ export default function AttributeStats({ selectedCluster, onSelectCluster }) {
   const clusterMax = Math.max(...selectedMeans);
   const clusterRange = clusterMax - clusterMin;
 
+  // Pad the range by 8% on each side so the lowest bar isn't 0%
+  // and the highest isn't forced to exactly 100%
+  const padding = clusterRange * 0.08;
+  const paddedMin = clusterMin - padding;
+  const paddedMax = clusterMax + padding;
+  const paddedRange = paddedMax - paddedMin;
+
   return (
     <div className="attribute-stats">
       <div className="cluster-tabs">
@@ -84,8 +91,8 @@ export default function AttributeStats({ selectedCluster, onSelectCluster }) {
         {features.map((feature, idx) => {
           const mean = clusterData?.mean?.[idx] ?? 0;
           const std = clusterData?.std?.[idx] ?? 0;
-          const widthPercent = clusterRange > 0 
-            ? ((mean - clusterMin) / clusterRange) * 100 
+          const widthPercent = paddedRange > 0 
+            ? ((mean - paddedMin) / paddedRange) * 100 
             : 0;
 
           return (

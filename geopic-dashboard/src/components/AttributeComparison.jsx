@@ -160,12 +160,14 @@ export default function AttributeComparison() {
                 marker: { color: barColors, opacity: 0.9 },
                 hovertext: hoverText,
                 hoverinfo: 'text',
+                hoverlabel: { namelength: -1 },
                 textposition: 'none',
               },
             ]}
             layout={{
               height: 320,
               margin: { t: 30, b: 70, l: 60, r: 20 },
+              hovermode: 'x',
               paper_bgcolor: 'rgba(0,0,0,0)',
               plot_bgcolor: 'rgba(0,0,0,0)',
               font: { color: '#9ca3af', size: 12 },
