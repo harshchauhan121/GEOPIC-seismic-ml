@@ -87,6 +87,12 @@ export default function AttributeComparison() {
 
   // Gather data for the selected attribute across all clusters
   const clusterLabels = clusterKeys.map((k) => `Cluster ${k}`);
+  const tickLabels = clusterKeys.map(
+    (k, i) => {
+      const m = stats.clusters[k].mean[attrIdx] ?? 0;
+      return `Cluster ${k}<br>(${m.toFixed(3)})`;
+    }
+  );
   const means = clusterKeys.map(
     (k) => stats.clusters[k].mean[attrIdx] ?? 0
   );
@@ -159,7 +165,7 @@ export default function AttributeComparison() {
             ]}
             layout={{
               height: 320,
-              margin: { t: 30, b: 50, l: 60, r: 20 },
+              margin: { t: 30, b: 70, l: 60, r: 20 },
               paper_bgcolor: 'rgba(0,0,0,0)',
               plot_bgcolor: 'rgba(0,0,0,0)',
               font: { color: '#9ca3af', size: 12 },
@@ -167,6 +173,8 @@ export default function AttributeComparison() {
                 title: '',
                 color: '#9ca3af',
                 gridcolor: '#1e293b',
+                tickvals: clusterLabels,
+                ticktext: tickLabels,
               },
               yaxis: {
                 title: { text: `Mean (${selectedAttribute})`, standoff: 10 },
