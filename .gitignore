@@ -13,7 +13,6 @@ report/*.txt
 # Seismic data binaries — never commit large raw data files
 *.segy
 *.sgy
-*.npy
 
 # Python build artifacts
 venv/
