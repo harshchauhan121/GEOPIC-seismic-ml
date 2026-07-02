@@ -283,7 +283,7 @@ body {
 
 .bar-row {
   display: grid;
-  grid-template-columns: 160px 1fr 160px;
+  grid-template-columns: minmax(80px, 140px) 1fr minmax(60px, 120px);
   align-items: center;
   gap: 12px;
 }
@@ -389,7 +389,7 @@ body {
   }
 
   .bar-row {
-    grid-template-columns: 120px 1fr 140px;
+    grid-template-columns: minmax(60px, 110px) 1fr minmax(50px, 100px);
     gap: 8px;
   }
 
@@ -425,5 +425,13 @@ body {
     margin-left: 0;
     width: 100%;
     text-align: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .attr-comparison-cols { flex-direction: column !important; }
+  .attr-comparison-cols > * { 
+    flex: 0 0 100% !important; 
+    min-width: 0 !important; 
   }
 }

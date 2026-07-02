@@ -50,7 +50,7 @@ export default function AttributeComparison() {
       setError('Failed to load attribute statistics');
       setLoading(false);
     }
-  }, [selectedAttribute]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -142,15 +142,17 @@ export default function AttributeComparison() {
 
       {/* Two-column layout: chart + explanation */}
       <div
+        className="attr-comparison-cols"
         style={{
           display: 'flex',
           gap: '20px',
           marginTop: '16px',
           alignItems: 'flex-start',
+          flexWrap: 'wrap'
         }}
       >
         {/* LEFT — Bar chart (~60%) */}
-        <div style={{ flex: '0 0 60%', minWidth: 0 }}>
+        <div style={{ flex: '0 0 60%', minWidth: 0, minWidth: '280px' }}>
           <Plot
             data={[
               {
@@ -201,7 +203,7 @@ export default function AttributeComparison() {
         <div
           style={{
             flex: '0 0 38%',
-            minWidth: 0,
+            minWidth: '240px',
             padding: '16px',
             borderLeft: '1px solid #1e293b',
             display: 'flex',
