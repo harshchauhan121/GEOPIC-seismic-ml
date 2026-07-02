@@ -34,8 +34,9 @@ app = FastAPI(
 
 # ── CORS ──────────────────────────────────────────────────────────────
 ALLOWED_ORIGINS = [
-    "http://localhost:5173",          # Vite dev server
-    "https://your-app.vercel.app",    # TODO: replace with actual Vercel URL after deploy
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://geopic-seislytics.vercel.app",
 ]
 
 app.add_middleware(
@@ -46,7 +47,7 @@ app.add_middleware(
 )
 
 # ── paths ─────────────────────────────────────────────────────────────
-OUTPUTS = Path(__file__).resolve().parent.parent / "outputs"
+OUTPUTS = Path('../outputs')
 
 
 # ── health ────────────────────────────────────────────────────────────
