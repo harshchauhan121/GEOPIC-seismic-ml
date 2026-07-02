@@ -51,7 +51,7 @@ OUTPUTS = Path('../outputs')
 
 
 # ── health ────────────────────────────────────────────────────────────
-@app.get("/health", tags=["Meta"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["Meta"])
 def health():
     """Simple liveness check."""
     return {"status": "ok"}
