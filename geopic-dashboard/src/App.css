@@ -146,13 +146,7 @@ body {
   background-color: #000;
 }
 
-#seismic-canvas {
-  display: block;
-  width: 100%;
-  height: 280px;
-  object-fit: none;
-  background-color: #000;
-}
+
 
 .inline-badge {
   position: absolute;

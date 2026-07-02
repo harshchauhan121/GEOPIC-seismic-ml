@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Plot from 'react-plotly.js';
 import { fetchAttributeStats } from '../api/client';
-
-const CLUSTER_COLORS = [
-  '#ef4444', // red    — Cluster 0
-  '#f97316', // orange — Cluster 1
-  '#eab308', // yellow — Cluster 2
-  '#22c55e', // green  — Cluster 3
-  '#3b82f6', // blue   — Cluster 4
-  '#a855f7', // purple — Cluster 5
-];
+import { CLUSTER_COLORS_HEX } from '../constants/clusterColors';
 
 const ATTRIBUTE_EXPLANATIONS = {
   envelope:
@@ -102,7 +94,7 @@ export default function AttributeComparison() {
   const counts = clusterKeys.map(
     (k) => stats.clusters[k].count ?? 0
   );
-  const barColors = clusterKeys.map((k) => CLUSTER_COLORS[parseInt(k)] || '#06b6d4');
+  const barColors = clusterKeys.map((k) => CLUSTER_COLORS_HEX[parseInt(k)] || '#06b6d4');
 
   // Find highest / lowest cluster for this attribute
   let highIdx = 0;

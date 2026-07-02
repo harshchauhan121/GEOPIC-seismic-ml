@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Plot from 'react-plotly.js';
 import { fetchTSNE } from '../api/client';
-
-const CLUSTER_COLORS = [
-  '#ef4444',
-  '#f97316',
-  '#eab308',
-  '#22c55e',
-  '#3b82f6',
-  '#a855f7',
-];
+import { CLUSTER_COLORS_HEX } from '../constants/clusterColors';
 
 export default function TSNEPlot() {
   const [data, setData] = useState(null);
@@ -78,7 +70,7 @@ export default function TSNEPlot() {
       type: 'scattergl',
       mode: 'markers',
       marker: {
-        color: CLUSTER_COLORS[i],
+        color: CLUSTER_COLORS_HEX[i],
         size: 3,
         opacity: 0.7,
       },
@@ -127,7 +119,7 @@ export default function TSNEPlot() {
         />
       </div>
       <div className="tsne-legend">
-        {CLUSTER_COLORS.map((color, idx) => (
+        {CLUSTER_COLORS_HEX.map((color, idx) => (
           <span key={idx} className="legend-pill" style={{ borderColor: color }}>
             Cluster {idx}
           </span>

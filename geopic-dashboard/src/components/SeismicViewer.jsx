@@ -1,15 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { fetchSeismicSection, fetchClusterLabels } from '../api/client';
-
-// RGB triplets — indexed by cluster ID (0–5)
-const CLUSTER_COLORS = [
-  [239, 68, 68],   // red    — Cluster 0
-  [249, 115, 22],   // orange — Cluster 1
-  [234, 179, 8],   // yellow — Cluster 2
-  [34, 197, 94],   // green  — Cluster 3
-  [59, 130, 246],  // blue   — Cluster 4
-  [168, 85, 247],  // purple — Cluster 5
-];
+import { CLUSTER_COLORS_RGB } from '../constants/clusterColors';
 
 export default function SeismicViewer({ showOverlay, clusterMethod }) {
   const canvasRef = useRef(null);
@@ -17,7 +8,6 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
   const [error, setError] = useState(null);
   const [seismicData, setSeismicData] = useState(null);
   const [clusterData, setClusterData] = useState(null);
-  const [baseImage, setBaseImage] = useState(null);
   const [overlayAlpha, setOverlayAlpha] = useState(0.40);
 
   // ── data fetch ──────────────────────────────────────────────────────
@@ -31,11 +21,7 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
       ]);
       setSeismicData(seismic);
       setClusterData(cluster);
-
-      const img = new Image();
-      img.onload = () => { setBaseImage(img); setLoading(false); };
-      img.onerror = () => { setError('Failed to load seismic image'); setLoading(false); };
-      img.src = `data:image/png;base64,${seismic.image_b64}`;
+      setLoading(false);
     } catch {
       setError('Failed to load seismic section');
       setLoading(false);
@@ -49,7 +35,6 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
     // All four data items must be ready; canvas must exist; overlay must be on
     if (
       !canvasRef.current ||
-      !baseImage ||
       !seismicData ||
       !clusterData ||
       !clusterData.labels ||
@@ -89,9 +74,9 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
         const clusterID = labels[labelRow][labelCol];
 
         // Skip unknown / out-of-range cluster IDs
-        if (clusterID < 0 || clusterID >= CLUSTER_COLORS.length) continue;
+        if (clusterID < 0 || clusterID >= CLUSTER_COLORS_RGB.length) continue;
 
-        const [cR, cG, cB] = CLUSTER_COLORS[clusterID];
+        const [cR, cG, cB] = CLUSTER_COLORS_RGB[clusterID];
         const px = (y * canvas.width + x) * 4;  // RGBA stride
 
         pixels[px] = cR;
@@ -102,7 +87,7 @@ export default function SeismicViewer({ showOverlay, clusterMethod }) {
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [baseImage, showOverlay, clusterData, seismicData, loading]);
+  }, [showOverlay, clusterData, seismicData, loading]);
 
   // ── shared media style ──────────────────────────────────────────────
   const mediaStyle = {

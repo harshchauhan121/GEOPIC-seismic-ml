@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchAttributeStats } from '../api/client';
-
-const CLUSTER_COLORS = [
-  '#ef4444',
-  '#f97316',
-  '#eab308',
-  '#22c55e',
-  '#3b82f6',
-  '#a855f7',
-];
+import { CLUSTER_COLORS_HEX } from '../constants/clusterColors';
 
 export default function ClusterDistribution() {
   const [stats, setStats] = useState(null);
@@ -67,7 +59,7 @@ export default function ClusterDistribution() {
       {clusterKeys.map((k) => {
         const count = stats.clusters[k].count;
         const percentage = totalSamples > 0 ? ((count / totalSamples) * 100).toFixed(1) : 0;
-        const color = CLUSTER_COLORS[parseInt(k)];
+        const color = CLUSTER_COLORS_HEX[parseInt(k)];
 
         return (
           <div key={k} className="bar-row" style={{ gridTemplateColumns: '90px 1fr 100px', gap: '12px', alignItems: 'center' }}>
