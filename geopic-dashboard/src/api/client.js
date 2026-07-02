@@ -15,7 +15,7 @@ async function fetchWithFallback(endpoint, options = {}) {
     }
     return await response.json();
   } catch (error) {
-    console.error(`API Error [${endpoint}]:`, error);
+    console.error(`API Error [${endpoint}]:`, error.message);
     throw error;
   }
 }

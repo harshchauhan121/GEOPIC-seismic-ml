@@ -9,3 +9,15 @@ project_notes*.txt
 test_endpoints.py
 report/*.md
 report/*.txt
+
+# Seismic data binaries — never commit large raw data files
+*.segy
+*.sgy
+*.npy
+
+# Python build artifacts
+venv/
+dist/
+build/
+*.egg-info/
+*.pyo
