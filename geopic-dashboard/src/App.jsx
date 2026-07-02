@@ -16,12 +16,27 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState('checking');
 
   useEffect(() => {
-    const checkHealth = async () => {
-      setApiStatus('checking');
-      const isHealthy = await checkApiHealth();
-      setApiStatus(isHealthy ? 'connected' : 'offline');
+    const checkHealth = async (attempt = 1) => {
+      try {
+        const isHealthy = await checkApiHealth();
+        if (isHealthy) {
+          setApiStatus('connected');
+        } else {
+          throw new Error('not ok');
+        }
+      } catch {
+        if (attempt < 3) {
+          setTimeout(() => checkHealth(attempt + 1), 3000);
+        } else {
+          setApiStatus('offline');
+        }
+      }
     };
+    
+    setApiStatus('checking');
     checkHealth();
+    const interval = setInterval(() => checkHealth(), 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
