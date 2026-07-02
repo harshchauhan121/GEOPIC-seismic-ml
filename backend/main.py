@@ -12,6 +12,7 @@ Run with:
 import base64
 import io
 from pathlib import Path
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -58,15 +59,8 @@ def health():
 
 
 # ── seismic section ───────────────────────────────────────────────────
-@app.get("/api/seismic-section", tags=["Seismic"])
-def seismic_section(
-    downsample: int = Query(default=4, ge=1, le=20,
-                            description="Take every Nth sample in both axes."),
-):
-    """
-    Return a downsampled, percentile-clipped, base64-encoded PNG of the
-    inline seismic section together with its width, height, and inline index.
-    """
+@lru_cache(maxsize=4)
+def _generate_seismic_section(downsample: int):
     section_path = OUTPUTS / "inline_section.npy"
     index_path   = OUTPUTS / "inline_index.npy"
 
@@ -104,18 +98,57 @@ def seismic_section(
     buf.seek(0)
     image_b64 = base64.b64encode(buf.read()).decode("utf-8")
 
-    # 6. Return JSON
-    return JSONResponse({
+    return {
         "image_b64":    image_b64,
         "width":        img.width,
         "height":       img.height,
         "inline_index": inline_index,
         "downsample":   downsample,
-    })
+    }
+
+
+@app.get("/api/seismic-section", tags=["Seismic"])
+def seismic_section(
+    downsample: int = Query(default=4, ge=1, le=20,
+                            description="Take every Nth sample in both axes."),
+):
+    """
+    Return a downsampled, percentile-clipped, base64-encoded PNG of the
+    inline seismic section together with its width, height, and inline index.
+    """
+    return JSONResponse(_generate_seismic_section(downsample))
 
 
 # ── cluster labels ────────────────────────────────────────────────────
 VALID_METHODS = {"kmeans", "gmm"}
+
+@lru_cache(maxsize=8)
+def _generate_cluster_labels(method: str, downsample: int):
+    label_path = OUTPUTS / f"label_map_{method}.npy"
+    if not label_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Label map not found for method '{method}': {label_path.name}",
+        )
+
+    # 1. Load — shape (n_samples, n_traces), i.e. (time, trace)
+    label_map = np.load(label_path)
+
+    # 2. Downsample
+    label_ds = label_map[::downsample, ::downsample]
+
+    # 3. Transpose so axis-0 = trace (x) and axis-1 = time (y),
+    #    matching how the frontend renders columns left-to-right.
+    label_ds_T = label_ds.T
+
+    return {
+        "labels":     label_ds_T.tolist(),
+        "n_clusters": int(np.max(label_ds) + 1),
+        "method":     method,
+        "downsample": downsample,
+        "shape":      list(label_ds_T.shape),   # [n_traces, n_samples] after transpose
+    }
+
 
 @app.get("/api/cluster-labels", tags=["Clustering"])
 def cluster_labels(
@@ -138,54 +171,12 @@ def cluster_labels(
             detail=f"Invalid method '{method}'. Choose from: {sorted(VALID_METHODS)}",
         )
 
-    label_path = OUTPUTS / f"label_map_{method}.npy"
-    if not label_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail=f"Label map not found for method '{method}': {label_path.name}",
-        )
-
-    # 1. Load — shape (n_samples, n_traces), i.e. (time, trace)
-    label_map = np.load(label_path)
-
-    # 2. Downsample
-    label_ds = label_map[::downsample, ::downsample]
-
-    # 3. Transpose so axis-0 = trace (x) and axis-1 = time (y),
-    #    matching how the frontend renders columns left-to-right.
-    label_ds_T = label_ds.T
-
-    # 4. Return JSON
-    return JSONResponse({
-        "labels":     label_ds_T.tolist(),
-        "n_clusters": int(np.max(label_ds) + 1),
-        "method":     method,
-        "downsample": downsample,
-        "shape":      list(label_ds_T.shape),   # [n_traces, n_samples] after transpose
-    })
+    return JSONResponse(_generate_cluster_labels(method, downsample))
 
 
 # ── attribute statistics ──────────────────────────────────────────────
-@app.get("/api/attribute-stats", tags=["Clustering"])
-def attribute_stats():
-    """
-    Return per-cluster descriptive statistics for all seismic features.
-
-    Loads the full feature matrix, K-Means cluster labels, and feature
-    names from OUTPUTS, then computes — for each unique cluster ID — the
-    mean, standard deviation, and sample count of every feature column.
-
-    Response schema
-    ───────────────
-    {
-        "features": ["feat_a", "feat_b", ...],          // 8 feature names
-        "clusters": {
-            "0": {"mean": [...], "std": [...], "count": 1234},
-            "1": {"mean": [...], "std": [...], "count":  987},
-            ...
-        }
-    }
-    """
+@lru_cache(maxsize=1)
+def _generate_attribute_stats():
     feat_matrix_path = OUTPUTS / "feature_matrix.npy"
     labels_path      = OUTPUTS / "kmeans_labels.npy"
     feat_names_path  = OUTPUTS / "feature_names.npy"
@@ -233,27 +224,38 @@ def attribute_stats():
             "count": int(mask.sum()),                 # scalar int
         }
 
-    return JSONResponse({
+    return {
         "features": feature_names,
         "clusters": cluster_stats,
-    })
+    }
 
 
-# ── t-SNE projection ──────────────────────────────────────────────────
-@app.get("/api/tsne", tags=["Clustering"])
-def tsne():
+@app.get("/api/attribute-stats", tags=["Clustering"])
+def attribute_stats():
     """
-    Return the 2-D t-SNE projection of the seismic feature matrix together
-    with the K-Means cluster label assigned to each sample.
+    Return per-cluster descriptive statistics for all seismic features.
+
+    Loads the full feature matrix, K-Means cluster labels, and feature
+    names from OUTPUTS, then computes — for each unique cluster ID — the
+    mean, standard deviation, and sample count of every feature column.
 
     Response schema
     ───────────────
     {
-        "x":      [float, ...],   // t-SNE dimension-1 coordinate per sample
-        "y":      [float, ...],   // t-SNE dimension-2 coordinate per sample
-        "labels": [int,   ...]    // cluster ID per sample (same length as x/y)
+        "features": ["feat_a", "feat_b", ...],          // 8 feature names
+        "clusters": {
+            "0": {"mean": [...], "std": [...], "count": 1234},
+            "1": {"mean": [...], "std": [...], "count":  987},
+            ...
+        }
     }
     """
+    return JSONResponse(_generate_attribute_stats())
+
+
+# ── t-SNE projection ──────────────────────────────────────────────────
+@lru_cache(maxsize=1)
+def _generate_tsne():
     tsne_path   = OUTPUTS / "tsne_2d.npy"
     labels_path = OUTPUTS / "tsne_labels.npy"
 
@@ -288,9 +290,25 @@ def tsne():
             ),
         )
 
-    # ── return ────────────────────────────────────────────────────────
-    return JSONResponse({
+    return {
         "x":      tsne_coords[:, 0].tolist(),          # list[float]
         "y":      tsne_coords[:, 1].tolist(),          # list[float]
         "labels": tsne_labels.astype(int).tolist(),    # list[int]
-    })
+    }
+
+
+@app.get("/api/tsne", tags=["Clustering"])
+def tsne():
+    """
+    Return the 2-D t-SNE projection of the seismic feature matrix together
+    with the K-Means cluster label assigned to each sample.
+
+    Response schema
+    ───────────────
+    {
+        "x":      [float, ...],   // t-SNE dimension-1 coordinate per sample
+        "y":      [float, ...],   // t-SNE dimension-2 coordinate per sample
+        "labels": [int,   ...]    // cluster ID per sample (same length as x/y)
+    }
+    """
+    return JSONResponse(_generate_tsne())
