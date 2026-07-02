@@ -1,5 +1,4 @@
 data/
-outputs/*.npy
 geopic_env/
 __pycache__/
 *.pyc
